@@ -359,3 +359,78 @@ body {
     padding: 10px;
   }
 }
+
+/* Video Timeline Slider Styles */
+.timeline-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.timeline-slider::-webkit-slider-track {
+  background: #555;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.timeline-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #00ff00;
+  cursor: pointer;
+  border: 2px solid #fff;
+}
+
+.timeline-slider::-moz-range-track {
+  background: #555;
+  height: 8px;
+  border-radius: 4px;
+  border: none;
+}
+
+.timeline-slider::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #00ff00;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-sizing: border-box;
+}
+
+/* Video Player Styles */
+video::-webkit-media-controls {
+  display: none !important;
+}
+
+video::-webkit-media-controls-enclosure {
+  display: none !important;
+}
+
+/* Hover effects for video editing interface */
+.video-preview-container:hover {
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+}
+
+/* Custom scrollbar for frame galleries */
+.result-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.result-area::-webkit-scrollbar-track {
+  background: #333;
+  border-radius: 4px;
+}
+
+.result-area::-webkit-scrollbar-thumb {
+  background: #00ff00;
+  border-radius: 4px;
+}
+
+.result-area::-webkit-scrollbar-thumb:hover {
+  background: #00cc00;
+}
