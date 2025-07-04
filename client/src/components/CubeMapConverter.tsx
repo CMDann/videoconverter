@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react';
 
-interface CubeMapConverterProps {}
+interface CubeMapConverterProps {
+  selectedFile: File | null;
+}
 
-const CubeMapConverter: React.FC<CubeMapConverterProps> = () => {
+const CubeMapConverter: React.FC<CubeMapConverterProps> = ({ selectedFile: globalSelectedFile }) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

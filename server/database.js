@@ -60,6 +60,24 @@ class Database {
         console.log('Extracted frames table ready');
       }
     });
+
+    // Settings table
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        key TEXT UNIQUE NOT NULL,
+        value TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `, (err) => {
+      if (err) {
+        console.error('Error creating settings table:', err);
+      } else {
+        console.log('Settings table ready');
+        this.initializeDefaultSettings();
+      }
+    });
   }
 
   // Add a new video processing record
@@ -220,6 +238,96 @@ class Database {
           resolve(null);
         }
       });
+    });
+  }
+
+  // Initialize default settings
+  initializeDefaultSettings() {
+    const defaultSettings = {
+      'theme_primary_color': '#00ff00',
+      'theme_secondary_color': '#00cc00',
+      'theme_background_color': '#1a1a1a',
+      'theme_card_background': '#2a2a2a',
+      'theme_border_color': '#00ff00',
+      'theme_text_color': '#00ff00',
+      'theme_error_color': '#ff0000',
+      'theme_success_color': '#00ff00',
+      'theme_warning_color': '#ffff00',
+      'theme_name': 'Matrix Green'
+    };
+
+    Object.entries(defaultSettings).forEach(([key, value]) => {
+      this.db.run(
+        'INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)',
+        [key, value],
+        (err) => {
+          if (err) {
+            console.error('Error inserting default setting:', key, err);
+          }
+        }
+      );
+    });
+  }
+
+  // Get a setting by key
+  getSetting(key) {
+    return new Promise((resolve, reject) => {
+      const sql = 'SELECT value FROM settings WHERE key = ?';
+      this.db.get(sql, [key], (err, row) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row ? row.value : null);
+        }
+      });
+    });
+  }
+
+  // Get all settings
+  getAllSettings() {
+    return new Promise((resolve, reject) => {
+      const sql = 'SELECT key, value FROM settings ORDER BY key';
+      this.db.all(sql, [], (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          const settings = {};
+          rows.forEach(row => {
+            settings[row.key] = row.value;
+          });
+          resolve(settings);
+        }
+      });
+    });
+  }
+
+  // Update or insert a setting
+  setSetting(key, value) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        INSERT OR REPLACE INTO settings (key, value, updated_at) 
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+      `;
+      this.db.run(sql, [key, value], function(err) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(this.changes);
+        }
+      });
+    });
+  }
+
+  // Update multiple settings at once
+  setMultipleSettings(settings) {
+    return new Promise((resolve, reject) => {
+      const promises = Object.entries(settings).map(([key, value]) => 
+        this.setSetting(key, value)
+      );
+      
+      Promise.all(promises)
+        .then(() => resolve(true))
+        .catch(reject);
     });
   }
 

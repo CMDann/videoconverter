@@ -1,43 +1,16 @@
 import React, { useState, useRef } from 'react';
 
-interface VideoProcessorProps {}
+interface VideoProcessorProps {
+  selectedFile: File | null;
+}
 
-const VideoProcessor: React.FC<VideoProcessorProps> = () => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+const VideoProcessor: React.FC<VideoProcessorProps> = ({ selectedFile }) => {
   const [metadata, setMetadata] = useState<any>(null);
   const [videoId, setVideoId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setError(null);
-      setSuccess(null);
-      setMetadata(null);
-      setVideoId(null);
-      setDownloadUrl(null);
-    }
-  };
-
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const file = event.dataTransfer.files[0];
-    if (file && file.type.startsWith('video/')) {
-      setSelectedFile(file);
-      setError(null);
-      setSuccess(null);
-      setMetadata(null);
-    }
-  };
-
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-  };
 
   const extractMetadata = async () => {
     if (!selectedFile) return;
@@ -114,51 +87,75 @@ const VideoProcessor: React.FC<VideoProcessorProps> = () => {
 
   return (
     <div className="function-card">
-      <h2 className="function-title">Video Metadata Extractor</h2>
+      <h2 className="function-title">📊 Video Metadata Extractor</h2>
       <p className="function-description">
-        Upload a video file to extract and save its metadata to JSON format
+        Extract comprehensive metadata from your video and save it as JSON
       </p>
 
-      <div
-        className="upload-area"
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <div className="upload-text">
-          {selectedFile ? selectedFile.name : 'Click to select or drag & drop video file'}
+      {!selectedFile ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '40px',
+          color: '#00cc00',
+          backgroundColor: '#333',
+          borderRadius: '10px',
+          border: '2px dashed #555'
+        }}>
+          <div style={{ fontSize: '3rem', marginBottom: '15px' }}>📊</div>
+          <h3 style={{ color: '#00ff00' }}>No File Selected</h3>
+          <p>Upload a video file using the area above to extract its metadata</p>
         </div>
-        <div className="upload-subtext">
-          {selectedFile 
-            ? `${formatFileSize(selectedFile.size)} - ${selectedFile.type}`
-            : 'Supports MP4, AVI, MOV, WMV, and more'
-          }
+      ) : !selectedFile.type.startsWith('video/') ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '40px',
+          color: '#ff6666',
+          backgroundColor: '#441111',
+          borderRadius: '10px',
+          border: '2px solid #ff0000'
+        }}>
+          <div style={{ fontSize: '3rem', marginBottom: '15px' }}>⚠️</div>
+          <h3 style={{ color: '#ff0000' }}>Invalid File Type</h3>
+          <p>Please select a video file. Current file: {selectedFile.type}</p>
         </div>
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileSelect}
-          accept="video/*"
-          className="file-input"
-        />
-      </div>
-
-      <div className="controls-grid">
-        <button
-          className="btn"
-          onClick={extractMetadata}
-          disabled={!selectedFile || loading}
-        >
-          {loading ? 'Extracting...' : 'Extract Metadata'}
-        </button>
-        <button
-          className="btn btn-secondary"
-          onClick={saveMetadata}
-          disabled={!metadata || loading}
-        >
-          Save to JSON
-        </button>
-      </div>
+      ) : (
+        <>
+          <div style={{
+            backgroundColor: '#333',
+            border: '2px solid #00ff00',
+            borderRadius: '10px',
+            padding: '20px',
+            marginBottom: '20px'
+          }}>
+            <h3 style={{ color: '#00ff00', marginBottom: '15px', textAlign: 'center' }}>
+              🎬 Ready to Process
+            </h3>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '15px',
+              marginBottom: '20px'
+            }}>
+              <button
+                className="btn"
+                onClick={extractMetadata}
+                disabled={loading}
+                style={{ padding: '15px 25px', fontSize: '1.1rem' }}
+              >
+                {loading ? '🔄 Extracting...' : '📊 Extract Metadata'}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={saveMetadata}
+                disabled={!metadata || loading}
+                style={{ padding: '15px 25px', fontSize: '1.1rem' }}
+              >
+                💾 Save to JSON
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {error && (
         <div className="error">

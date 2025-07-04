@@ -2,10 +2,11 @@ import React, { useState, useRef } from 'react';
 import VideoPreview from './VideoPreview';
 import TrimTimeline from './TrimTimeline';
 
-interface VideoEditorProps {}
+interface VideoEditorProps {
+  selectedFile: File | null;
+}
 
-const VideoEditor: React.FC<VideoEditorProps> = () => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+const VideoEditor: React.FC<VideoEditorProps> = ({ selectedFile }) => {
   const [startTime, setStartTime] = useState<number>(0);
   const [endTime, setEndTime] = useState<number>(0);
   const [videoDuration, setVideoDuration] = useState<number>(0);
@@ -17,46 +18,19 @@ const VideoEditor: React.FC<VideoEditorProps> = () => {
   const [operation, setOperation] = useState<'frames' | 'trim' | null>(null);
   const [frameUrls, setFrameUrls] = useState<string[]>([]);
   const [browseUrl, setBrowseUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setError(null);
-      setSuccess(null);
-      setFrameUrls([]);
-      setBrowseUrl(null);
-      setStartTime(0);
-      setEndTime(0);
-      setVideoDuration(0);
-      setCurrentTime(0);
-    }
-  };
-
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const file = event.dataTransfer.files[0];
-    if (file && file.type.startsWith('video/')) {
-      setSelectedFile(file);
-      setError(null);
-      setSuccess(null);
-      setFrameUrls([]);
-      setBrowseUrl(null);
-      setStartTime(0);
-      setEndTime(0);
-      setVideoDuration(0);
-      setCurrentTime(0);
-    }
-  };
-
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-  };
+  const [extractionMode, setExtractionMode] = useState<'count' | 'all' | 'seconds'>('count');
+  const [frameCount, setFrameCount] = useState<number>(30);
+  const [progress, setProgress] = useState<number>(0);
+  const [totalVideoFrames, setTotalVideoFrames] = useState<number>(0);
+  const [videoFPS, setVideoFPS] = useState<number>(30);
 
   const handleVideoLoadedMetadata = (duration: number) => {
     setVideoDuration(duration);
     setEndTime(duration);
+    
+    // Estimate total frames (will be updated with accurate data from server)
+    const estimatedFrames = Math.floor(duration * videoFPS);
+    setTotalVideoFrames(estimatedFrames);
   };
 
   const handleVideoTimeUpdate = (current: number, duration: number) => {
@@ -78,11 +52,16 @@ const VideoEditor: React.FC<VideoEditorProps> = () => {
     setError(null);
     setSuccess(null);
     setOperation('frames');
+    setProgress(0);
 
     try {
       const formData = new FormData();
       formData.append('video', selectedFile);
       formData.append('preserveMetadata', preserveMetadata.toString());
+      formData.append('extractionMode', extractionMode);
+      if (extractionMode === 'count') {
+        formData.append('frameCount', frameCount.toString());
+      }
 
       const response = await fetch('http://localhost:5001/api/video/extract-frames', {
         method: 'POST',
@@ -157,33 +136,35 @@ const VideoEditor: React.FC<VideoEditorProps> = () => {
         Import, preview, and edit your videos with frame extraction and precision trimming
       </p>
 
-      {/* File Upload Area - Only show if no file selected */}
-      {!selectedFile && (
-        <div
-          className="upload-area"
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onClick={() => fileInputRef.current?.click()}
-          style={{ marginBottom: '30px' }}
-        >
-          <div className="upload-text">
-            🎥 Click to select or drag & drop video file
-          </div>
-          <div className="upload-subtext">
-            Supports MP4, AVI, MOV, WMV, MKV, and more
-          </div>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileSelect}
-            accept="video/*"
-            className="file-input"
-          />
+      {!selectedFile ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '60px',
+          color: '#00cc00',
+          backgroundColor: '#333',
+          borderRadius: '15px',
+          border: '2px dashed #555'
+        }}>
+          <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🎬</div>
+          <h3 style={{ color: '#00ff00', marginBottom: '10px' }}>Professional Video Editor</h3>
+          <p style={{ fontSize: '1.1rem' }}>Upload a video file using the area above to start editing</p>
+          <p style={{ opacity: 0.7 }}>Preview • Trim • Extract Frames • Process</p>
         </div>
-      )}
-
-      {/* Video Preview */}
-      {selectedFile && (
+      ) : !selectedFile.type.startsWith('video/') ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '60px',
+          color: '#ff6666',
+          backgroundColor: '#441111',
+          borderRadius: '15px',
+          border: '2px solid #ff0000'
+        }}>
+          <div style={{ fontSize: '4rem', marginBottom: '20px' }}>⚠️</div>
+          <h3 style={{ color: '#ff0000', marginBottom: '10px' }}>Video Required</h3>
+          <p style={{ fontSize: '1.1rem' }}>This tool requires a video file. Current file: {selectedFile.type}</p>
+          <p style={{ opacity: 0.7 }}>Please select a video file from the upload area above</p>
+        </div>
+      ) : (
         <>
           <VideoPreview
             videoFile={selectedFile}
@@ -218,6 +199,55 @@ const VideoEditor: React.FC<VideoEditorProps> = () => {
             </h3>
 
             <div className="form-group">
+              <label className="form-label">Frame Extraction Mode</label>
+              <select
+                className="form-input"
+                value={extractionMode}
+                onChange={(e) => setExtractionMode(e.target.value as 'count' | 'all' | 'seconds')}
+                style={{ marginBottom: '10px' }}
+              >
+                <option value="count">Extract Specific Number of Frames</option>
+                <option value="seconds">Extract One Frame Per Second</option>
+                <option value="all">Extract ALL Frames (⚠️ Large!)</option>
+              </select>
+              
+              {extractionMode === 'count' && (
+                <div style={{ marginTop: '10px' }}>
+                  <label className="form-label">Number of Frames to Extract</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={frameCount}
+                    onChange={(e) => setFrameCount(Math.max(1, parseInt(e.target.value) || 1))}
+                    min="1"
+                    max={totalVideoFrames || 1000}
+                    style={{ marginBottom: '5px' }}
+                  />
+                  <div style={{ fontSize: '0.8rem', color: '#00cc00', marginBottom: '10px' }}>
+                    Max available: ~{totalVideoFrames} frames ({Math.round(videoFPS)} FPS × {Math.round(videoDuration)}s)
+                  </div>
+                </div>
+              )}
+              
+              {extractionMode === 'all' && (
+                <div style={{ 
+                  padding: '10px', 
+                  backgroundColor: '#441100', 
+                  border: '2px solid #ff6600',
+                  borderRadius: '5px',
+                  marginTop: '10px',
+                  marginBottom: '10px'
+                }}>
+                  <div style={{ color: '#ff6600', fontWeight: 'bold', marginBottom: '5px' }}>⚠️ Warning</div>
+                  <div style={{ color: '#ffaa66', fontSize: '0.8rem' }}>
+                    Extracting ALL frames (~{totalVideoFrames}) will take significant time and disk space.
+                    Consider using "Specific Number" mode for faster processing.
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="form-group">
               <label className="checkbox-label">
                 <input
                   type="checkbox"
@@ -228,6 +258,38 @@ const VideoEditor: React.FC<VideoEditorProps> = () => {
                 Preserve original metadata in processed files
               </label>
             </div>
+
+            {loading && operation === 'frames' && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  marginBottom: '5px'
+                }}>
+                  <span style={{ color: '#00ff00', fontSize: '0.9rem' }}>
+                    🎞️ Extracting Frames...
+                  </span>
+                  <span style={{ color: '#00cc00', fontSize: '0.8rem' }}>
+                    {progress > 0 ? `${Math.round(progress)}%` : 'Processing...'}
+                  </span>
+                </div>
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill" 
+                    style={{ 
+                      width: `${progress}%`,
+                      transition: 'width 0.3s ease'
+                    }}
+                  ></div>
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '5px', textAlign: 'center' }}>
+                  {extractionMode === 'all' && 'Extracting all frames - this may take several minutes'}
+                  {extractionMode === 'count' && `Extracting ${frameCount} frames`}
+                  {extractionMode === 'seconds' && `Extracting ~${Math.floor(videoDuration)} frames`}
+                </div>
+              </div>
+            )}
 
             <div className="controls-grid">
               <button
@@ -266,17 +328,6 @@ const VideoEditor: React.FC<VideoEditorProps> = () => {
               <div>
                 📊 {formatFileSize(selectedFile.size)} • {videoDuration > 0 ? `${Math.round(videoDuration)}s` : 'Loading...'}
               </div>
-              <button
-                className="btn btn-secondary"
-                onClick={() => {
-                  setSelectedFile(null);
-                  setFrameUrls([]);
-                  setBrowseUrl(null);
-                }}
-                style={{ padding: '5px 10px', fontSize: '0.8rem' }}
-              >
-                🗑️ Clear
-              </button>
             </div>
           </div>
         </>

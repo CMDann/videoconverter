@@ -1,4 +1,4 @@
-![Editor Screenshot](./ss.png)
+![Title Screenshot](./ss.png)
 
 # Video Convert Pro
 
@@ -10,6 +10,8 @@ A professional video and 360° image processing suite with a dark theme interfac
 2. **Video Editor** - Extract frames or trim video segments with metadata preservation options
 3. **360° Image Processor** - Process 360° images with various editing capabilities
 4. **Cube Map Converter** - Convert 360° images into 6-sided cube maps
+
+![Editor Screenshot](./edit.png)
 
 ## Installation
 

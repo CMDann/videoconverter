@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
 
-interface ImageProcessorProps {}
+interface ImageProcessorProps {
+  selectedFile: File | null;
+}
 
-const ImageProcessor: React.FC<ImageProcessorProps> = () => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+const ImageProcessor: React.FC<ImageProcessorProps> = ({ selectedFile }) => {
   const [preserveMetadata, setPreserveMetadata] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -14,7 +15,6 @@ const ImageProcessor: React.FC<ImageProcessorProps> = () => {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
       setError(null);
       setSuccess(null);
     }
@@ -24,7 +24,6 @@ const ImageProcessor: React.FC<ImageProcessorProps> = () => {
     event.preventDefault();
     const file = event.dataTransfer.files[0];
     if (file && file.type.startsWith('image/')) {
-      setSelectedFile(file);
       setError(null);
       setSuccess(null);
     }

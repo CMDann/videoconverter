@@ -265,7 +265,7 @@ app.post('/api/video/extract-frames', upload.single('video'), async (req, res) =
   }
 
   const videoPath = req.file.path;
-  const { preserveMetadata = false } = req.body;
+  const { preserveMetadata = false, frameCount, extractionMode = 'count' } = req.body;
   const framesDir = path.join(outputDir, `frames_${Date.now()}`);
   const framesDirName = path.basename(framesDir);
   
@@ -273,22 +273,6 @@ app.post('/api/video/extract-frames', upload.single('video'), async (req, res) =
   console.log('Output directory:', framesDir);
   
   let videoHistoryId;
-  
-  try {
-    // Add to database
-    videoHistoryId = await db.addVideoRecord({
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      fileSize: req.file.size,
-      mimeType: req.file.mimetype,
-      operationType: 'frame_extraction',
-      status: 'processing',
-      inputPath: videoPath,
-      additionalData: { preserveMetadata, framesDirName }
-    });
-  } catch (dbErr) {
-    console.error('Database error:', dbErr);
-  }
   
   try {
     if (!fs.existsSync(framesDir)) {
@@ -317,26 +301,86 @@ app.post('/api/video/extract-frames', upload.single('video'), async (req, res) =
       }
 
       const duration = metadata.format.duration;
-      console.log('Video duration:', duration, 'seconds');
-
-      // Extract multiple frames instead of just one
-      const frameCount = Math.min(10, Math.max(1, Math.floor(duration / 10))); // Max 10 frames, min 1
-      const timestamps = [];
+      const fps = metadata.streams[0].r_frame_rate ? eval(metadata.streams[0].r_frame_rate) : 30;
+      const totalFrames = Math.floor(duration * fps);
       
-      for (let i = 0; i < frameCount; i++) {
-        const timestamp = (duration / (frameCount + 1)) * (i + 1);
-        timestamps.push(timestamp);
+      console.log('Video duration:', duration, 'seconds');
+      console.log('Video FPS:', fps);
+      console.log('Total frames in video:', totalFrames);
+
+      // Add to database now that we have metadata
+      try {
+        videoHistoryId = await db.addVideoRecord({
+          filename: req.file.filename,
+          originalName: req.file.originalname,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype,
+          operationType: 'frame_extraction',
+          status: 'processing',
+          inputPath: videoPath,
+          additionalData: { 
+            preserveMetadata, 
+            framesDirName, 
+            extractionMode, 
+            requestedFrameCount: frameCount,
+            totalVideoFrames: totalFrames,
+            videoFPS: fps,
+            duration: duration
+          }
+        });
+      } catch (dbErr) {
+        console.error('Database error:', dbErr);
+      }
+
+      let actualFrameCount;
+      let timestamps = [];
+
+      if (extractionMode === 'all') {
+        // Extract every frame (WARNING: This can be very large!)
+        actualFrameCount = totalFrames;
+        console.log('Extracting ALL frames - this may take a while and use lots of disk space!');
+      } else if (extractionMode === 'count' && frameCount) {
+        // Extract specific number of frames
+        actualFrameCount = Math.min(parseInt(frameCount), totalFrames);
+        for (let i = 0; i < actualFrameCount; i++) {
+          const timestamp = (duration / (actualFrameCount + 1)) * (i + 1);
+          timestamps.push(timestamp);
+        }
+      } else {
+        // Default: extract frames every second
+        actualFrameCount = Math.min(Math.floor(duration), totalFrames);
+        for (let i = 0; i < actualFrameCount; i++) {
+          timestamps.push(i + 1); // Every second
+        }
       }
       
-      console.log('Extracting frames at timestamps:', timestamps);
+      console.log('Extracting', actualFrameCount, 'frames');
+      if (timestamps.length > 0) {
+        console.log('Sample timestamps:', timestamps.slice(0, 5));
+      }
 
-      ffmpeg(videoPath)
-        .screenshots({
-          timestamps: timestamps,
-          filename: 'frame_%03d.png',
-          folder: framesDir,
-          size: '?x720' // Auto-width, 720p height
-        })
+      let ffmpegCommand;
+      
+      if (extractionMode === 'all') {
+        // Extract every frame using a different approach
+        ffmpegCommand = ffmpeg(videoPath)
+          .output(path.join(framesDir, 'frame_%06d.png'))
+          .outputOptions([
+            '-vf', 'scale=-1:720', // Auto-width, 720p height
+            '-q:v', '2' // High quality
+          ]);
+      } else {
+        // Extract specific frames at timestamps
+        ffmpegCommand = ffmpeg(videoPath)
+          .screenshots({
+            timestamps: timestamps,
+            filename: 'frame_%06d.png',
+            folder: framesDir,
+            size: '?x720' // Auto-width, 720p height
+          });
+      }
+      
+      ffmpegCommand
         .on('start', (commandLine) => {
           console.log('FFmpeg command:', commandLine);
         })
@@ -428,6 +472,11 @@ app.post('/api/video/extract-frames', upload.single('video'), async (req, res) =
             details: err.toString()
           });
         });
+      
+      // Start the extraction
+      if (extractionMode === 'all') {
+        ffmpegCommand.run();
+      }
     });
 
   } catch (error) {
@@ -708,6 +757,67 @@ app.get('/api/browse/:directory?', (req, res) => {
   } catch (error) {
     console.error('Error browsing directory:', error);
     res.status(500).json({ error: 'Failed to browse directory' });
+  }
+});
+
+// Settings API endpoints
+
+// Get all settings
+app.get('/api/settings', async (req, res) => {
+  try {
+    const settings = await db.getAllSettings();
+    res.json(settings);
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+});
+
+// Get specific setting
+app.get('/api/settings/:key', async (req, res) => {
+  try {
+    const value = await db.getSetting(req.params.key);
+    if (value === null) {
+      return res.status(404).json({ error: 'Setting not found' });
+    }
+    res.json({ key: req.params.key, value: value });
+  } catch (error) {
+    console.error('Error fetching setting:', error);
+    res.status(500).json({ error: 'Failed to fetch setting' });
+  }
+});
+
+// Update settings
+app.put('/api/settings', async (req, res) => {
+  try {
+    const { settings } = req.body;
+    
+    if (!settings || typeof settings !== 'object') {
+      return res.status(400).json({ error: 'Invalid settings data' });
+    }
+    
+    await db.setMultipleSettings(settings);
+    res.json({ message: 'Settings updated successfully' });
+  } catch (error) {
+    console.error('Error updating settings:', error);
+    res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
+// Update single setting
+app.put('/api/settings/:key', async (req, res) => {
+  try {
+    const { value } = req.body;
+    
+    if (value === undefined || value === null) {
+      return res.status(400).json({ error: 'Value is required' });
+    }
+    
+    await db.setSetting(req.params.key, value);
+    res.json({ message: 'Setting updated successfully' });
+  } catch (error) {
+    console.error('Error updating setting:', error);
+    res.status(500).json({ error: 'Failed to update setting' });
   }
 });
 
