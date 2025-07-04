@@ -1,4 +1,4 @@
-![Editor Screenshot](ss.png)
+![Editor Screenshot](./ss.png)
 
 # Video Convert Pro
 

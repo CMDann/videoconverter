@@ -374,8 +374,6 @@ start-server-simple.sh
 *.m4v
 *.3gp
 *.jpg
-*.jpeg
-*.png
 *.gif
 *.bmp
 *.tiff
