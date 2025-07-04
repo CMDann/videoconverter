@@ -432,7 +432,7 @@ app.post('/api/video/extract-frames', upload.single('video'), async (req, res) =
           
           // Create frame URLs
           const frameUrls = files.map(file => `http://localhost:${PORT}/files/${framesDirName}/${file}`);
-          const browseUrl = `http://localhost:${PORT}/files/${framesDirName}/`;
+          const browseUrl = `http://localhost:${PORT}/browse/${framesDirName}`;
           
           res.json({
             id: videoHistoryId,
@@ -646,19 +646,34 @@ app.post('/api/360image/cube-map', upload.array('images'), async (req, res) => {
         await faceImage.writeAsync(facePath);
       }
       
+      const faceUrls = faces.map(face => {
+        const filename = `${path.parse(file.originalname).name}_${face}.png`;
+        return {
+          face: face,
+          filename: filename,
+          url: `http://localhost:${PORT}/files/${path.basename(cubeMapDir)}/${filename}`
+        };
+      });
+
       results.push({
         original: file.originalname,
-        faces: faces.map(face => `${path.parse(file.originalname).name}_${face}.png`)
+        faces: faces.map(face => `${path.parse(file.originalname).name}_${face}.png`),
+        faceUrls: faceUrls
       });
       
       // Clean up uploaded file
       fs.unlinkSync(imagePath);
     }
     
+    const cubeMapDirName = path.basename(cubeMapDir);
+    const browseUrl = `http://localhost:${PORT}/browse/${cubeMapDirName}`;
+    
     res.json({
       message: 'Cube maps generated successfully',
       outputDir: cubeMapDir,
-      results: results
+      results: results,
+      browseUrl: browseUrl,
+      cubeMapDirectory: cubeMapDirName
     });
     
   } catch (error) {
@@ -722,7 +737,209 @@ app.get('/api/history/:id/frames', async (req, res) => {
   }
 });
 
-// Browse files in output directory
+// Browse files in output directory (HTML interface)
+app.get('/browse/:directory?', (req, res) => {
+  try {
+    const directory = req.params.directory || '';
+    const fullPath = path.join(outputDir, directory);
+    
+    // Security check - don't allow going above output directory
+    if (!fullPath.startsWith(outputDir)) {
+      return res.status(403).send('<h1>Access Denied</h1>');
+    }
+    
+    if (!fs.existsSync(fullPath)) {
+      return res.status(404).send('<h1>Directory Not Found</h1>');
+    }
+    
+    const items = fs.readdirSync(fullPath, { withFileTypes: true });
+    const files = items.map(item => {
+      const itemPath = path.join(directory, item.name);
+      return {
+        name: item.name,
+        type: item.isDirectory() ? 'directory' : 'file',
+        path: itemPath,
+        url: item.isFile() ? `http://localhost:${PORT}/files/${itemPath}` : null,
+        size: item.isFile() ? fs.statSync(path.join(fullPath, item.name)).size : null
+      };
+    });
+    
+    // Generate HTML for file browser
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Browser - ${directory || 'Root'}</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #1a1a1a;
+            color: #00ff00;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .breadcrumb {
+            background-color: #2a2a2a;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: 2px solid #00ff00;
+            margin-bottom: 20px;
+            color: #00cc00;
+        }
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .file-item {
+            background-color: #2a2a2a;
+            border: 2px solid #00ff00;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .file-item:hover {
+            background-color: #333;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+            transform: translateY(-2px);
+        }
+        .file-item img {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 5px;
+            border: 1px solid #555;
+        }
+        .file-name {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #00ff00;
+            word-break: break-word;
+        }
+        .file-size {
+            color: #888;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        .directory-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        .image-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+        .back-link {
+            display: inline-block;
+            background-color: #00ff00;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            background-color: #00cc00;
+        }
+        .stats {
+            text-align: center;
+            color: #00cc00;
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #333;
+            border-radius: 5px;
+            border: 2px solid #00ff00;
+        }
+    </style>
+</head>
+<body>
+    <h1>📁 File Browser</h1>
+    
+    <div class="breadcrumb">
+        📂 Current Directory: /${directory || 'root'}
+    </div>
+    
+    ${directory ? `<a href="/browse" class="back-link">← Back to Root</a>` : ''}
+    
+    <div class="file-grid">
+        ${files.map(file => {
+          if (file.type === 'directory') {
+            return `
+              <a href="/browse/${file.path}">
+                <div class="file-item">
+                  <div class="directory-icon">📁</div>
+                  <div class="file-name">${file.name}</div>
+                  <div class="file-size">Directory</div>
+                </div>
+              </a>
+            `;
+          } else {
+            const isImage = file.name.toLowerCase().match(/\.(png|jpg|jpeg|gif|bmp|webp)$/);
+            return `
+              <a href="${file.url}" target="_blank">
+                <div class="file-item">
+                  ${isImage ? 
+                    `<img src="${file.url}" alt="${file.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                     <div class="image-icon" style="display:none;">🖼️</div>` :
+                    `<div class="image-icon">📄</div>`
+                  }
+                  <div class="file-name">${file.name}</div>
+                  <div class="file-size">${file.size ? formatBytes(file.size) : 'Unknown'}</div>
+                </div>
+              </a>
+            `;
+          }
+        }).join('')}
+    </div>
+    
+    <div class="stats">
+        📊 ${files.filter(f => f.type === 'directory').length} directories • 
+        ${files.filter(f => f.type === 'file').length} files
+    </div>
+    
+    <script>
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Add formatted file sizes
+        document.querySelectorAll('.file-size').forEach(el => {
+            const text = el.textContent;
+            const bytes = parseInt(text);
+            if (!isNaN(bytes)) {
+                el.textContent = formatBytes(bytes);
+            }
+        });
+    </script>
+</body>
+</html>
+    `;
+    
+    res.send(html);
+  } catch (error) {
+    console.error('Error browsing directory:', error);
+    res.status(500).send('<h1>Error</h1><p>Failed to browse directory</p>');
+  }
+});
+
+// Browse files in output directory (JSON API)
 app.get('/api/browse/:directory?', (req, res) => {
   try {
     const directory = req.params.directory || '';

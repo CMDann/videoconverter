@@ -10,6 +10,7 @@ const CubeMapConverter: React.FC<CubeMapConverterProps> = ({ selectedFile: globa
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [results, setResults] = useState<any[]>([]);
+  const [browseUrl, setBrowseUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -20,6 +21,7 @@ const CubeMapConverter: React.FC<CubeMapConverterProps> = ({ selectedFile: globa
       setError(null);
       setSuccess(null);
       setResults([]);
+      setBrowseUrl(null);
     }
   };
 
@@ -32,6 +34,7 @@ const CubeMapConverter: React.FC<CubeMapConverterProps> = ({ selectedFile: globa
       setError(null);
       setSuccess(null);
       setResults([]);
+      setBrowseUrl(null);
     }
   };
 
@@ -46,6 +49,7 @@ const CubeMapConverter: React.FC<CubeMapConverterProps> = ({ selectedFile: globa
     setError(null);
     setSuccess(null);
     setResults([]);
+    setBrowseUrl(null);
 
     try {
       const formData = new FormData();
@@ -64,6 +68,7 @@ const CubeMapConverter: React.FC<CubeMapConverterProps> = ({ selectedFile: globa
 
       const data = await response.json();
       setResults(data.results);
+      setBrowseUrl(data.browseUrl);
       setSuccess(`Cube maps generated successfully in ${data.outputDir}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -158,24 +163,157 @@ const CubeMapConverter: React.FC<CubeMapConverterProps> = ({ selectedFile: globa
       {success && (
         <div className="success">
           {success}
+          {browseUrl && (
+            <div style={{ marginTop: '10px' }}>
+              <a 
+                href={browseUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="btn btn-secondary"
+                style={{ textDecoration: 'none', display: 'inline-block' }}
+              >
+                Browse All Cube Maps
+              </a>
+            </div>
+          )}
         </div>
       )}
 
       {results.length > 0 && (
-        <div className="result-area">
-          <div className="result-text">
-            <strong>Generated Cube Maps:</strong>
-            {results.map((result, index) => (
-              <div key={index} style={{ marginTop: '10px' }}>
-                <strong>{result.original}:</strong>
-                <ul style={{ marginLeft: '20px' }}>
-                  {result.faces.map((face: string, faceIndex: number) => (
-                    <li key={faceIndex}>{face}</li>
+        <div className="result-area" style={{ marginTop: '20px' }}>
+          <h3 style={{ color: '#00ff00', marginBottom: '15px', textAlign: 'center' }}>
+            🗺️ Generated Cube Maps ({results.reduce((total, result) => total + (result.faceUrls?.length || 0), 0)} faces)
+          </h3>
+          
+          {results.map((result, resultIndex) => (
+            <div key={resultIndex} style={{ marginBottom: '30px' }}>
+              <h4 style={{ 
+                color: '#00cc00', 
+                marginBottom: '15px',
+                textAlign: 'center',
+                padding: '10px',
+                backgroundColor: '#333',
+                borderRadius: '5px',
+                border: '2px solid #00ff00'
+              }}>
+                📷 Source: {result.original}
+              </h4>
+              
+              {result.faceUrls && result.faceUrls.length > 0 ? (
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', 
+                  gap: '15px'
+                }}>
+                  {result.faceUrls.map((faceData: any, faceIndex: number) => (
+                    <div
+                      key={faceIndex}
+                      style={{
+                        border: '2px solid #00ff00',
+                        borderRadius: '8px',
+                        padding: '10px',
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        backgroundColor: '#333'
+                      }}
+                      onClick={() => window.open(faceData.url, '_blank')}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-3px)';
+                        e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 255, 0, 0.5)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      <img
+                        src={faceData.url}
+                        alt={`${faceData.face} face`}
+                        style={{
+                          width: '100%',
+                          height: '120px',
+                          objectFit: 'cover',
+                          borderRadius: '5px',
+                          border: '1px solid #555'
+                        }}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const fallback = parent.querySelector('.fallback-icon') as HTMLElement;
+                            if (fallback) fallback.style.display = 'block';
+                          }
+                        }}
+                      />
+                      <div 
+                        className="fallback-icon"
+                        style={{ 
+                          display: 'none',
+                          height: '120px', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          background: '#444', 
+                          borderRadius: '5px', 
+                          color: '#ff0000',
+                          fontSize: '2rem'
+                        }}
+                      >
+                        ❌
+                      </div>
+                      <div style={{ 
+                        fontSize: '0.9rem', 
+                        color: '#00cc00', 
+                        marginTop: '8px', 
+                        fontWeight: 'bold',
+                        textTransform: 'capitalize'
+                      }}>
+                        {faceData.face}
+                      </div>
+                      <div style={{ 
+                        fontSize: '0.7rem', 
+                        color: '#888', 
+                        marginTop: '3px'
+                      }}>
+                        {faceData.filename}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: '#888' }}>
+                        Click to view full size
+                      </div>
+                    </div>
                   ))}
-                </ul>
+                </div>
+              ) : (
+                <div style={{ 
+                  textAlign: 'center', 
+                  color: '#888', 
+                  fontStyle: 'italic',
+                  padding: '20px'
+                }}>
+                  No cube map faces generated for this image
+                </div>
+              )}
+            </div>
+          ))}
+          
+          {results.length > 1 && (
+            <div style={{ 
+              textAlign: 'center', 
+              marginTop: '20px', 
+              padding: '15px',
+              backgroundColor: 'rgba(0, 255, 0, 0.1)',
+              borderRadius: '5px',
+              border: '1px solid #00ff00'
+            }}>
+              <div style={{ color: '#00ff00', fontWeight: 'bold' }}>
+                Successfully processed {results.length} 360° images
               </div>
-            ))}
-          </div>
+              <div style={{ color: '#00cc00', fontSize: '0.9rem', marginTop: '5px' }}>
+                Each image has been converted into 6 cube map faces (front, back, left, right, top, bottom)
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

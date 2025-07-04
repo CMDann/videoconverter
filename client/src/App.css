@@ -50,19 +50,20 @@ body {
 }
 
 .main-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 10px;
+  padding-right: 380px; /* Space for fixed upload area */
 }
 
 .tabs-container {
-  margin-top: 30px;
+  margin-top: 10px;
 }
 
 .tabs-header {
   display: flex;
   border-bottom: 2px solid var(--primary-color);
-  margin-bottom: 30px;
+  margin-bottom: 15px;
   overflow-x: auto;
 }
 
@@ -120,12 +121,12 @@ body {
   background-color: var(--card-background);
   border: 2px solid var(--border-color);
   border-radius: 10px;
-  padding: 25px;
+  padding: 15px;
   transition: all 0.3s ease;
   box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
   width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
 }
 
 .function-title {
@@ -363,12 +364,36 @@ body {
   }
   
   .function-card {
-    padding: 20px;
-    margin: 0 10px;
+    padding: 10px;
+    margin: 0 5px;
   }
   
   .main-container {
-    padding: 10px;
+    padding: 5px;
+    padding-right: 10px; /* Less space for mobile */
+  }
+  
+  .compact-upload-container {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    max-width: none !important;
+    margin-bottom: 15px;
+  }
+}
+
+/* Video Editor responsive layout */
+@media (max-width: 1024px) {
+  /* Stack video editor columns on tablets and smaller */
+  .video-editor-layout {
+    flex-direction: column !important;
+  }
+  
+  .video-editor-left,
+  .video-editor-right {
+    flex: none !important;
+    min-width: auto !important;
+    width: 100% !important;
   }
 }
 

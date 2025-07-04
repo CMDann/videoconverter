@@ -100,14 +100,13 @@ function App() {
       </header>
       
       <main className="main-container">
-        {/* Global File Upload Area */}
-        <div className="global-upload-container" style={{ 
-          marginBottom: '30px',
-          position: 'sticky',
-          top: '0',
-          zIndex: 10,
-          backgroundColor: '#1a1a1a',
-          padding: '20px 0'
+        {/* Compact File Upload Area - Top Right */}
+        <div className="compact-upload-container" style={{ 
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 1000,
+          maxWidth: '350px'
         }}>
           {!selectedFile ? (
             <div
@@ -117,17 +116,18 @@ function App() {
               onClick={() => fileInputRef.current?.click()}
               style={{ 
                 background: 'linear-gradient(135deg, #2a2a2a 0%, #333 100%)',
-                border: '3px dashed #00ff00',
-                borderRadius: '15px',
-                padding: '30px',
-                transition: 'all 0.3s ease'
+                border: '2px dashed #00ff00',
+                borderRadius: '10px',
+                padding: '15px',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer'
               }}
             >
-              <div className="upload-text" style={{ fontSize: '1.3rem', marginBottom: '10px' }}>
-                🚀 Start Your Project - Upload Video or Image
+              <div className="upload-text" style={{ fontSize: '0.9rem', marginBottom: '5px', textAlign: 'center' }}>
+                🚀 Upload File
               </div>
-              <div className="upload-subtext" style={{ fontSize: '1rem' }}>
-                Drag & drop files here or click to browse • Supports videos, images, and 360° content
+              <div className="upload-subtext" style={{ fontSize: '0.8rem', textAlign: 'center' }}>
+                Video or Image
               </div>
               <input
                 type="file"
@@ -141,54 +141,54 @@ function App() {
             <div style={{
               backgroundColor: '#2a2a2a',
               border: '2px solid #00ff00',
-              borderRadius: '15px',
-              padding: '15px 20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              boxShadow: '0 0 20px rgba(0, 255, 0, 0.2)'
+              borderRadius: '10px',
+              padding: '10px',
+              boxShadow: '0 0 15px rgba(0, 255, 0, 0.2)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                <div style={{ fontSize: '2rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <div style={{ fontSize: '1.2rem' }}>
                   {getFileTypeIcon(selectedFile)}
                 </div>
-                <div>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ 
                     color: '#00ff00', 
-                    fontSize: '1.1rem', 
+                    fontSize: '0.85rem', 
                     fontWeight: 'bold',
-                    marginBottom: '3px'
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
                   }}>
                     {selectedFile.name}
                   </div>
                   <div style={{ 
                     color: '#00cc00', 
-                    fontSize: '0.9rem'
+                    fontSize: '0.7rem'
                   }}>
-                    {formatFileSize(selectedFile.size)} • {selectedFile.type}
+                    {formatFileSize(selectedFile.size)}
                   </div>
                 </div>
               </div>
               
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '5px' }}>
                 <button
                   className="btn btn-secondary"
                   onClick={() => fileInputRef.current?.click()}
-                  style={{ padding: '8px 15px', fontSize: '0.9rem' }}
+                  style={{ padding: '5px 8px', fontSize: '0.7rem', flex: 1 }}
                 >
-                  📂 Change File
+                  📂 Change
                 </button>
                 <button
                   className="btn"
                   onClick={handleClearFile}
                   style={{ 
-                    padding: '8px 15px', 
-                    fontSize: '0.9rem',
+                    padding: '5px 8px', 
+                    fontSize: '0.7rem',
                     backgroundColor: '#ff4444',
-                    border: 'none'
+                    border: 'none',
+                    flex: 1
                   }}
                 >
-                  🗑️ Clear & Start New
+                  🗑️ Clear
                 </button>
                 <input
                   type="file"

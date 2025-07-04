@@ -130,7 +130,7 @@ const VideoEditor: React.FC<VideoEditorProps> = ({ selectedFile }) => {
   };
 
   return (
-    <div className="function-card" style={{ maxWidth: 'none' }}>
+    <div className="function-card">
       <h2 className="function-title">🎬 Professional Video Editor</h2>
       <p className="function-description">
         Import, preview, and edit your videos with frame extraction and precision trimming
@@ -166,296 +166,307 @@ const VideoEditor: React.FC<VideoEditorProps> = ({ selectedFile }) => {
         </div>
       ) : (
         <>
-          <VideoPreview
-            videoFile={selectedFile}
-            onTimeUpdate={handleVideoTimeUpdate}
-            onLoadedMetadata={handleVideoLoadedMetadata}
-            trimStart={startTime}
-            trimEnd={endTime}
-          />
+          <div className="video-editor-layout" style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+            {/* Left Column - Video Preview */}
+            <div className="video-editor-left" style={{ flex: '2', minWidth: '400px' }}>
+              <VideoPreview
+                videoFile={selectedFile}
+                onTimeUpdate={handleVideoTimeUpdate}
+                onLoadedMetadata={handleVideoLoadedMetadata}
+                trimStart={startTime}
+                trimEnd={endTime}
+              />
 
-          {/* Trim Timeline */}
-          {videoDuration > 0 && (
-            <TrimTimeline
-              duration={videoDuration}
-              startTime={startTime}
-              endTime={endTime}
-              currentTime={currentTime}
-              onStartTimeChange={handleStartTimeChange}
-              onEndTimeChange={handleEndTimeChange}
-            />
-          )}
-
-          {/* Control Panel */}
-          <div style={{
-            backgroundColor: '#333',
-            border: '2px solid #00ff00',
-            borderRadius: '10px',
-            padding: '20px',
-            marginBottom: '20px'
-          }}>
-            <h3 style={{ color: '#00ff00', marginBottom: '15px', textAlign: 'center' }}>
-              🛠️ Processing Controls
-            </h3>
-
-            <div className="form-group">
-              <label className="form-label">Frame Extraction Mode</label>
-              <select
-                className="form-input"
-                value={extractionMode}
-                onChange={(e) => setExtractionMode(e.target.value as 'count' | 'all' | 'seconds')}
-                style={{ marginBottom: '10px' }}
-              >
-                <option value="count">Extract Specific Number of Frames</option>
-                <option value="seconds">Extract One Frame Per Second</option>
-                <option value="all">Extract ALL Frames (⚠️ Large!)</option>
-              </select>
-              
-              {extractionMode === 'count' && (
-                <div style={{ marginTop: '10px' }}>
-                  <label className="form-label">Number of Frames to Extract</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={frameCount}
-                    onChange={(e) => setFrameCount(Math.max(1, parseInt(e.target.value) || 1))}
-                    min="1"
-                    max={totalVideoFrames || 1000}
-                    style={{ marginBottom: '5px' }}
+              {/* Trim Timeline */}
+              {videoDuration > 0 && (
+                <div style={{ marginTop: '15px' }}>
+                  <TrimTimeline
+                    duration={videoDuration}
+                    startTime={startTime}
+                    endTime={endTime}
+                    currentTime={currentTime}
+                    onStartTimeChange={handleStartTimeChange}
+                    onEndTimeChange={handleEndTimeChange}
                   />
-                  <div style={{ fontSize: '0.8rem', color: '#00cc00', marginBottom: '10px' }}>
-                    Max available: ~{totalVideoFrames} frames ({Math.round(videoFPS)} FPS × {Math.round(videoDuration)}s)
-                  </div>
                 </div>
               )}
-              
-              {extractionMode === 'all' && (
-                <div style={{ 
-                  padding: '10px', 
-                  backgroundColor: '#441100', 
-                  border: '2px solid #ff6600',
+            </div>
+
+            {/* Right Column - Controls */}
+            <div className="video-editor-right" style={{ flex: '1', minWidth: '300px' }}>
+              <div style={{
+                backgroundColor: '#333',
+                border: '2px solid #00ff00',
+                borderRadius: '10px',
+                padding: '15px',
+                marginBottom: '15px'
+              }}>
+                <h3 style={{ color: '#00ff00', marginBottom: '12px', textAlign: 'center', fontSize: '1.1rem' }}>
+                  🛠️ Processing Controls
+                </h3>
+
+                <div className="form-group">
+                  <label className="form-label">Frame Extraction Mode</label>
+                  <select
+                    className="form-input"
+                    value={extractionMode}
+                    onChange={(e) => setExtractionMode(e.target.value as 'count' | 'all' | 'seconds')}
+                    style={{ marginBottom: '10px' }}
+                  >
+                    <option value="count">Extract Specific Number of Frames</option>
+                    <option value="seconds">Extract One Frame Per Second</option>
+                    <option value="all">Extract ALL Frames (⚠️ Large!)</option>
+                  </select>
+                  
+                  {extractionMode === 'count' && (
+                    <div style={{ marginTop: '10px' }}>
+                      <label className="form-label">Number of Frames to Extract</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={frameCount}
+                        onChange={(e) => setFrameCount(Math.max(1, parseInt(e.target.value) || 1))}
+                        min="1"
+                        max={totalVideoFrames || 1000}
+                        style={{ marginBottom: '5px' }}
+                      />
+                      <div style={{ fontSize: '0.8rem', color: '#00cc00', marginBottom: '10px' }}>
+                        Max available: ~{totalVideoFrames} frames ({Math.round(videoFPS)} FPS × {Math.round(videoDuration)}s)
+                      </div>
+                    </div>
+                  )}
+                  
+                  {extractionMode === 'all' && (
+                    <div style={{ 
+                      padding: '10px', 
+                      backgroundColor: '#441100', 
+                      border: '2px solid #ff6600',
+                      borderRadius: '5px',
+                      marginTop: '10px',
+                      marginBottom: '10px'
+                    }}>
+                      <div style={{ color: '#ff6600', fontWeight: 'bold', marginBottom: '5px' }}>⚠️ Warning</div>
+                      <div style={{ color: '#ffaa66', fontSize: '0.8rem' }}>
+                        Extracting ALL frames (~{totalVideoFrames}) will take significant time and disk space.
+                        Consider using "Specific Number" mode for faster processing.
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      className="form-checkbox"
+                      checked={preserveMetadata}
+                      onChange={(e) => setPreserveMetadata(e.target.checked)}
+                    />
+                    Preserve original metadata in processed files
+                  </label>
+                </div>
+
+                {loading && operation === 'frames' && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '5px'
+                    }}>
+                      <span style={{ color: '#00ff00', fontSize: '0.9rem' }}>
+                        🎞️ Extracting Frames...
+                      </span>
+                      <span style={{ color: '#00cc00', fontSize: '0.8rem' }}>
+                        {progress > 0 ? `${Math.round(progress)}%` : 'Processing...'}
+                      </span>
+                    </div>
+                    <div className="progress-bar">
+                      <div 
+                        className="progress-fill" 
+                        style={{ 
+                          width: `${progress}%`,
+                          transition: 'width 0.3s ease'
+                        }}
+                      ></div>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '5px', textAlign: 'center' }}>
+                      {extractionMode === 'all' && 'Extracting all frames - this may take several minutes'}
+                      {extractionMode === 'count' && `Extracting ${frameCount} frames`}
+                      {extractionMode === 'seconds' && `Extracting ~${Math.floor(videoDuration)} frames`}
+                    </div>
+                  </div>
+                )}
+
+                <div className="controls-grid">
+                  <button
+                    className="btn"
+                    onClick={extractFrames}
+                    disabled={!selectedFile || loading}
+                    style={{ padding: '15px', fontSize: '1.1rem' }}
+                  >
+                    {loading && operation === 'frames' ? '🎞️ Extracting...' : '🎞️ Extract Frames'}
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={trimVideo}
+                    disabled={!selectedFile || endTime <= startTime || loading}
+                    style={{ padding: '15px', fontSize: '1.1rem' }}
+                  >
+                    {loading && operation === 'trim' ? '✂️ Trimming...' : '✂️ Trim Video'}
+                  </button>
+                </div>
+
+                {/* File info bar */}
+                <div style={{
+                  marginTop: '15px',
+                  padding: '10px',
+                  backgroundColor: '#444',
                   borderRadius: '5px',
-                  marginTop: '10px',
-                  marginBottom: '10px'
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.9rem',
+                  color: '#00cc00'
                 }}>
-                  <div style={{ color: '#ff6600', fontWeight: 'bold', marginBottom: '5px' }}>⚠️ Warning</div>
-                  <div style={{ color: '#ffaa66', fontSize: '0.8rem' }}>
-                    Extracting ALL frames (~{totalVideoFrames}) will take significant time and disk space.
-                    Consider using "Specific Number" mode for faster processing.
+                  <div>
+                    📁 {selectedFile.name}
+                  </div>
+                  <div>
+                    📊 {formatFileSize(selectedFile.size)} • {videoDuration > 0 ? `${Math.round(videoDuration)}s` : 'Loading...'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Error and Success Messages */}
+          {error && (
+            <div className="error" style={{ marginTop: '15px' }}>
+              Error: {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="success" style={{ marginTop: '15px' }}>
+              {success}
+              {browseUrl && (
+                <div style={{ marginTop: '10px' }}>
+                  <a 
+                    href={browseUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="btn btn-secondary"
+                    style={{ textDecoration: 'none', display: 'inline-block' }}
+                  >
+                    Browse All Frames
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Debug info */}
+          {process.env.NODE_ENV === 'development' && (
+            <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#111', border: '1px solid #333', borderRadius: '5px' }}>
+              <div style={{ color: '#00ff00', fontSize: '0.8rem' }}>
+                Debug: frameUrls.length = {frameUrls.length}
+              </div>
+              <div style={{ color: '#00cc00', fontSize: '0.7rem' }}>
+                URLs: {frameUrls.length > 0 ? frameUrls.slice(0, 3).join(', ') + '...' : 'none'}
+              </div>
+            </div>
+          )}
+
+          {/* Extracted Frames Display */}
+          {frameUrls.length > 0 && (
+            <div className="result-area" style={{ marginTop: '20px' }}>
+              <h3 style={{ color: '#00ff00', marginBottom: '15px', textAlign: 'center' }}>
+                🎞️ Extracted Frames ({frameUrls.length})
+              </h3>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
+                gap: '15px',
+                maxHeight: '400px',
+                overflowY: 'auto',
+                padding: '10px'
+              }}>
+                {frameUrls.slice(0, 12).map((url, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      border: '2px solid #00ff00',
+                      borderRadius: '8px',
+                      padding: '8px',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      backgroundColor: '#333'
+                    }}
+                    onClick={() => window.open(url, '_blank')}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-3px)';
+                      e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 255, 0, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <img
+                      src={url}
+                      alt={`Frame ${index + 1}`}
+                      style={{
+                        width: '100%',
+                        height: '80px',
+                        objectFit: 'cover',
+                        borderRadius: '5px',
+                        border: '1px solid #555'
+                      }}
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.innerHTML = `
+                            <div style="height: 80px; display: flex; align-items: center; justify-content: center; background: #444; border-radius: 5px; color: #ff0000;">
+                              ❌ Failed to load
+                            </div>
+                            <div style="font-size: 0.8rem; color: #00cc00; margin-top: 5px;">Frame ${index + 1}</div>
+                          `;
+                        }
+                      }}
+                    />
+                    <div style={{ fontSize: '0.8rem', color: '#00cc00', marginTop: '5px', fontWeight: 'bold' }}>
+                      Frame {index + 1}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#888' }}>
+                      Click to view
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {frameUrls.length > 12 && (
+                <div style={{ 
+                  textAlign: 'center', 
+                  marginTop: '15px', 
+                  padding: '10px',
+                  backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                  borderRadius: '5px',
+                  border: '1px solid #00ff00'
+                }}>
+                  <div style={{ color: '#00ff00', fontWeight: 'bold' }}>
+                    Showing first 12 of {frameUrls.length} frames
+                  </div>
+                  <div style={{ color: '#00cc00', fontSize: '0.9rem', marginTop: '5px' }}>
+                    Click "Browse All Frames" above to see all extracted frames
                   </div>
                 </div>
               )}
             </div>
-
-            <div className="form-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  className="form-checkbox"
-                  checked={preserveMetadata}
-                  onChange={(e) => setPreserveMetadata(e.target.checked)}
-                />
-                Preserve original metadata in processed files
-              </label>
-            </div>
-
-            {loading && operation === 'frames' && (
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  marginBottom: '5px'
-                }}>
-                  <span style={{ color: '#00ff00', fontSize: '0.9rem' }}>
-                    🎞️ Extracting Frames...
-                  </span>
-                  <span style={{ color: '#00cc00', fontSize: '0.8rem' }}>
-                    {progress > 0 ? `${Math.round(progress)}%` : 'Processing...'}
-                  </span>
-                </div>
-                <div className="progress-bar">
-                  <div 
-                    className="progress-fill" 
-                    style={{ 
-                      width: `${progress}%`,
-                      transition: 'width 0.3s ease'
-                    }}
-                  ></div>
-                </div>
-                <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '5px', textAlign: 'center' }}>
-                  {extractionMode === 'all' && 'Extracting all frames - this may take several minutes'}
-                  {extractionMode === 'count' && `Extracting ${frameCount} frames`}
-                  {extractionMode === 'seconds' && `Extracting ~${Math.floor(videoDuration)} frames`}
-                </div>
-              </div>
-            )}
-
-            <div className="controls-grid">
-              <button
-                className="btn"
-                onClick={extractFrames}
-                disabled={!selectedFile || loading}
-                style={{ padding: '15px', fontSize: '1.1rem' }}
-              >
-                {loading && operation === 'frames' ? '🎞️ Extracting...' : '🎞️ Extract Frames'}
-              </button>
-              <button
-                className="btn btn-secondary"
-                onClick={trimVideo}
-                disabled={!selectedFile || endTime <= startTime || loading}
-                style={{ padding: '15px', fontSize: '1.1rem' }}
-              >
-                {loading && operation === 'trim' ? '✂️ Trimming...' : '✂️ Trim Video'}
-              </button>
-            </div>
-
-            {/* File info bar */}
-            <div style={{
-              marginTop: '15px',
-              padding: '10px',
-              backgroundColor: '#444',
-              borderRadius: '5px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontSize: '0.9rem',
-              color: '#00cc00'
-            }}>
-              <div>
-                📁 {selectedFile.name}
-              </div>
-              <div>
-                📊 {formatFileSize(selectedFile.size)} • {videoDuration > 0 ? `${Math.round(videoDuration)}s` : 'Loading...'}
-              </div>
-            </div>
-          </div>
+          )}
         </>
-      )}
-
-      {error && (
-        <div className="error">
-          Error: {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="success">
-          {success}
-          {browseUrl && (
-            <div style={{ marginTop: '10px' }}>
-              <a 
-                href={browseUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="btn btn-secondary"
-                style={{ textDecoration: 'none', display: 'inline-block' }}
-              >
-                Browse All Frames
-              </a>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Debug info */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#111', border: '1px solid #333', borderRadius: '5px' }}>
-          <div style={{ color: '#00ff00', fontSize: '0.8rem' }}>
-            Debug: frameUrls.length = {frameUrls.length}
-          </div>
-          <div style={{ color: '#00cc00', fontSize: '0.7rem' }}>
-            URLs: {frameUrls.length > 0 ? frameUrls.slice(0, 3).join(', ') + '...' : 'none'}
-          </div>
-        </div>
-      )}
-
-      {frameUrls.length > 0 && (
-        <div className="result-area" style={{ marginTop: '20px' }}>
-          <h3 style={{ color: '#00ff00', marginBottom: '15px', textAlign: 'center' }}>
-            🎞️ Extracted Frames ({frameUrls.length})
-          </h3>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
-            gap: '15px',
-            maxHeight: '400px',
-            overflowY: 'auto',
-            padding: '10px'
-          }}>
-            {frameUrls.slice(0, 12).map((url, index) => (
-              <div
-                key={index}
-                style={{
-                  border: '2px solid #00ff00',
-                  borderRadius: '8px',
-                  padding: '8px',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  backgroundColor: '#333'
-                }}
-                onClick={() => window.open(url, '_blank')}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-3px)';
-                  e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 255, 0, 0.5)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                <img
-                  src={url}
-                  alt={`Frame ${index + 1}`}
-                  style={{
-                    width: '100%',
-                    height: '80px',
-                    objectFit: 'cover',
-                    borderRadius: '5px',
-                    border: '1px solid #555'
-                  }}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    const parent = target.parentElement;
-                    if (parent) {
-                      parent.innerHTML = `
-                        <div style="height: 80px; display: flex; align-items: center; justify-content: center; background: #444; border-radius: 5px; color: #ff0000;">
-                          ❌ Failed to load
-                        </div>
-                        <div style="font-size: 0.8rem; color: #00cc00; margin-top: 5px;">Frame ${index + 1}</div>
-                      `;
-                    }
-                  }}
-                />
-                <div style={{ fontSize: '0.8rem', color: '#00cc00', marginTop: '5px', fontWeight: 'bold' }}>
-                  Frame {index + 1}
-                </div>
-                <div style={{ fontSize: '0.7rem', color: '#888' }}>
-                  Click to view
-                </div>
-              </div>
-            ))}
-          </div>
-          {frameUrls.length > 12 && (
-            <div style={{ 
-              textAlign: 'center', 
-              marginTop: '15px', 
-              padding: '10px',
-              backgroundColor: 'rgba(0, 255, 0, 0.1)',
-              borderRadius: '5px',
-              border: '1px solid #00ff00'
-            }}>
-              <div style={{ color: '#00ff00', fontWeight: 'bold' }}>
-                Showing first 12 of {frameUrls.length} frames
-              </div>
-              <div style={{ color: '#00cc00', fontSize: '0.9rem', marginTop: '5px' }}>
-                Click "Browse All Frames" above to see all extracted frames
-              </div>
-            </div>
-          )}
-        </div>
       )}
     </div>
   );
